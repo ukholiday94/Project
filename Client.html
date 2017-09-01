@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>file upload Client</title>
+	</head>
+	<body>
+		<label>
+			<strong>Upload File : </strong>
+			<input type="file" id="uploadfiles"/>
+		</label>
+		<br/><br/><br/>
+		<form>
+			<input type="button" value="받기" onclick="download()" id="downbutton">
+			&nbsp; &nbsp; &nbsp; &nbsp;
+			<input type="button" value="보내기" onclick="upload()" id="upbutton">
+			&nbsp; &nbsp; &nbsp; &nbsp;
+			<input type="button" value="중지" onclick="stop()" id="stopbutton">
+		</form>
+		<script type="text/javascript" src="upload.js"></script>
+	</body>
+</html>
