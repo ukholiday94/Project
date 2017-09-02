@@ -9,6 +9,11 @@ que = queue.Queue()
 recive_Connection = False
 send_Connection = False
 
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_socket.bind(("", PORT))
+server_socket.listen(2)
+print ("TCPServer Waiting for client on port 8082")
+
 def sendByClient(conn): #클라이언트가 송신
 	while True:
 		global que
@@ -56,11 +61,6 @@ def client_thread(conn):
 		sendByClient(conn)
 		
 while True:
-	server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	server_socket.bind(("", PORT))
-	server_socket.listen(2)
-	print ("TCPServer Waiting for client on port 8082")
-
 	client_socket, addr = server_socket.accept()
 	print ('Got connection from', addr)
 	Thread(target=client_thread, args = (client_socket,)).start()

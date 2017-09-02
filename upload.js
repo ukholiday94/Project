@@ -45,10 +45,22 @@ function downloadFile(file){
 }
 
 function send(file) {
-	// 바이너리 보내기
-	//var data = file.getImageData(0, 0, 200, 200).data;
-	var byteArray = new Uint8Array(file);
-	socket.send(byteArray.buffer);
+	var file = document.getElementById('uploadfiles').files[0];
+    var reader = new FileReader();
+    var rawData = new ArrayBuffer();            
+
+    reader.loadend = function() {
+    }
+    reader.onload = function(e) {
+        rawData = e.target.result;
+        ws.send(rawData);
+        alert("파일 전송이 완료 되었습니다.")
+        ws.send('end');
+    }
+
+    reader.readAsArrayBuffer(file);
+	//var byteArray = new Uint8Array(file);
+	//socket.send(byteArray.buffer);
 }
 function handleReceive(message) {
 	// 受信したRAWデータをcanvasに
