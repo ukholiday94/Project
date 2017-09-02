@@ -17,12 +17,12 @@ while True:
 		print ('Sending...')
 		l = f.read(1024)
 		while (l):
-			print ('Sending...')
 			s.send(l)
 			l = f.read(1024)
+			print ('Sending...')
 		f.close()
+		#s.send("endtrans".encode())
 		print ("Done Sending")
 		s.shutdown(socket.SHUT_WR)
-		print (s.recv(1024))
 		s.close		# Close the socket when done
 		break
