@@ -3,17 +3,28 @@ var socket = null;
 (function () {
 	var uploadfiles = document.querySelector('#uploadfiles');
 	uploadfiles.addEventListener('change', function () {
-		fileSelected = this.files[0];
+		if(this.files[0].size > 4294967296){
+			alert("4GB보다 작은 크기만 전송가능합니다.");
+		}
+		else{
+			fileSelected = this.files[0];
+		}
 	}, false);
 }());
 
 function upload(){
-	alert("업로드 시작");
-	
-	Uploader('ws://localhost:8082', fileSelected)
-	
-	var btn = document.getElementById("downbutton");
-	btn.disabled = "disabled";
+	if(fileSelected != null)
+	{
+		alert("업로드 시작");
+		
+		Uploader('ws://localhost:8082', fileSelected)
+		
+		var btn = document.getElementById("downbutton");
+		btn.disabled = "disabled";
+	}
+	else{
+		alert("4GB보다 작은 크기만 전송가능합니다.");
+	}
 }
 function download(){
 	alert("다운로드 시작");
