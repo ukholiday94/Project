@@ -1,5 +1,7 @@
 import socket
 import queue
+import base64
+import hashlib
 from threading import Thread
 
 RECV_BUFFER = 1024
@@ -14,13 +16,47 @@ server_socket.bind(("", PORT))
 server_socket.listen(2)
 print ("TCPServer Waiting for client on port 8082")
 
+def send(client, msg):
+	data = bytearray(msg.encode('utf-8'))
+	if len(data) > 126:
+		data = bytearray([129, 126]) + bytearray(struct.pack('>H', len(data))) + data
+	else:
+		data = bytearray([129, len(data)]) + data #b'\x81'
+		print(data)
+	client.send(data)
+def recv(client):
+	first_byte = bytearray(client.recv(1))[0]
+	FIN = (0xFF & first_byte) >> 7
+	opcode = (0x0F & first_byte)
+	second_byte = bytearray(client.recv(1))[0]
+	mask = (0xFF & second_byte) >> 7
+	payload_len = (0x7F & second_byte)
+	if opcode < 3:
+		if (payload_len == 126):
+			payload_len = struct.unpack_from('>H', bytearray(client.recv(2)))[0]
+		elif (payload_len == 127):
+			payload_len = struct.unpack_from('>Q', bytearray(client.recv(8)))[0]
+		if mask == 1:
+			masking_key = bytearray(client.recv(4))
+		masked_data = bytearray(client.recv(payload_len))
+		if mask == 1:
+			data = [masked_data[i] ^ masking_key[i%4] for i in range(len(masked_data))]
+		else:
+			data = masked_data
+	else:
+		return opcode, bytearray(b'\x00')
+	return opcode, bytearray(data)
+
 def sendByClient(conn): #클라이언트가 송신
 	while True:
 		global que
 		global recive_Connection
 		global send_Connection
+		
+		recive_Connection = True
+		
 		if recive_Connection == True:
-			conn.send("ok".encode())
+			send(conn,"ok")
 			print ("Receiving...")
 			data = conn.recv(RECV_BUFFER)
 			while (data):
@@ -52,13 +88,26 @@ def client_thread(conn):
 	global que
 	global recive_Connection
 	global send_Connection
+	
 	check = conn.recv(RECV_BUFFER).decode()
-	if check == "recive": #recive
-		recive_Connection = True
-		reciveByClient(conn)
-	elif check == "send": #send
-		send_Connection = True
-		sendByClient(conn)
+	check = check[check.find("Sec-WebSocket-Key:")+19:check.find("Sec-WebSocket-Extensions:")]
+	check = check.strip()
+	key = check +'258EAFA5-E914-47DA-95CA-C5AB0DC85B11' 
+	key = key.encode('utf-8')
+	keyString = base64.b64encode(hashlib.sha1(key).digest())
+	HANDSHAKE_STR = "HTTP/1.1 101 Switching Protocols\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: "+keyString.decode('utf-8')+"\r\n\r\n"
+	conn.send(HANDSHAKE_STR.encode())
+	
+	opcode, check = recv(conn)
+	
+	if opcode == 1:
+		check = check.decode()
+		if check == "recive": #recive
+			recive_Connection = True
+			reciveByClient(conn)
+		elif check == "send": #send
+			send_Connection = True
+			sendByClient(conn)
 		
 while True:
 	client_socket, addr = server_socket.accept()

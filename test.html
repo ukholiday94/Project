@@ -5,7 +5,33 @@
 <title>File Upload Client</title>
 
     <script type="text/javascript">
-
+		/***var ws = null;
+		
+		function connect() {
+			ws = new WebSocket("ws://localhost:8082);
+			setTimeout(bindEvents, 1000);
+			setReadyState();
+		}
+		
+		function bindEvents() {
+			ws.onopen = function() {
+				log('onopen called');
+				setReadyState();
+			};
+		}
+		
+		function setReadyState() {
+			log('ws.readyState: ' + ws.readyState);
+		}
+		
+		function log(msg) {
+			if(document.body) {
+				var text = document.createTextNode(msg);
+				document.body.appendChild(text);
+			}
+		}
+		
+		connect();*/
         var ws = null;
     
         function connector(){
@@ -27,7 +53,7 @@
                 alert("연결 종료");
             };
             ws.onerror = function(e) {
-                alert(e.msg);
+                alert(e.data);
             }
         }    
         
