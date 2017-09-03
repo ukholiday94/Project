@@ -34,14 +34,7 @@ function download(){
 	var btn = document.getElementById("upbutton");
 	btn.disabled = "disabled";
 }
-function stop(){
-	alert("중지");
-	disconnect();
-	var downbtn = document.getElementById("downbutton");
-	var upbtn = document.getElementById("upbutton");
-	downbtn.disabled = false;
-	upbtn.disabled = false;
-}
+
 
 function disconnect() {
  if (socket != 0) {
@@ -69,6 +62,8 @@ function Uploader(url, file) {
 
 	socket.onopen = function() {
 		socket.send("send");
+		socket.send(file.name);
+		socket.send(file.size);
 	}
 	socket.onmessage = function(ms){
 		if(ms.data=="ok"){
@@ -86,9 +81,12 @@ function Uploader(url, file) {
 	};
 }
 function Downloader(url) {
-	var file = new File("recv.png");
 	socket = new WebSocket(url);
-	socket.binaryType = 'arraybuffer';
+	socket.binaryType = 'blob';
+	var i = 2;
+	var filename = null;
+	var filesize = null;
+	var data = "";
 	
 	socket.onopen = function() {
 		socket.send("recive");
@@ -97,63 +95,50 @@ function Downloader(url) {
 		if(ms.data=="ok"){
 			alert("Receiving...");
 		}
+		else if(i==2){
+			filename = ms.data;
+			i--;
+		}
+		else if(i==1){
+			filesize = ms.data;
+			i--;
+		}
 		else{
-			file.open("wb");
-			while(true){
-				file.write(ms.data)
-			}
-			/**for(var i = 0; i < fs.slices; ++i) {
-				socket.send(fs.getNextSlice());
-			}*/
+			tmp = ms.data;
+			data = new Blob([data,tmp], {type: "application/octet-stream"}); //text/plain
 		}
 	}
 	socket.onclose = function() {
-		file.close();
+		var SaveAsURL = window.URL.createObjectURL(data);
+		var downloadLink = document.createElement("a");
+		downloadLink.download = filename;
+		downloadLink.innerHTML = "Download File";
+		downloadLink.href = SaveAsURL;
+		downloadLink.onclick = destroyClickedElement;
+		downloadLink.style.display = "none";
+		document.body.appendChild(downloadLink);
+		downloadLink.click();
+		
 		alert("다운로드 종료");
 		var upbtn = document.getElementById("upbutton");
 		upbtn.disabled = false;
 	};
 }
-
-function handleReceive(message) {
-	// 受信したRAWデータをcanvasに
-	var buffer = new Uint8Array(message.data);
-	file.putImageData(imageData, 0, 0);
+function destroyClickedElement(event)
+{
+    document.body.removeChild(event.target);
 }
 
 
 /**
-function uploadFile(file){
-	alert("1");
-	socket = new WebSocket('ws://localhost:8082');
-	socket.binaryType = 'arraybuffer';
-	socket.onopen = function() {
-		send(file);
-	}
+function stop(){
+	alert("중지");
+	disconnect();
+	var downbtn = document.getElementById("downbutton");
+	var upbtn = document.getElementById("upbutton");
+	downbtn.disabled = false;
+	upbtn.disabled = false;
 }
-function downloadFile(file){
-	socket = new WebSocket('ws://localhost:8082');
-	socket.binaryType = 'arraybuffer';
-	socket.onmessage = handleReceive;
-}
-
-
-function showFileInfo(file){
-	alert("name : " + file.name);
-	alert("size : " + file.size);
-	alert("type : " + file.type);
-	alert("date : " + file.lastModified);
-}
-
-<script>
-  var wSocket = new WebSocket("ws:yourdomain/demo");
-  
-  wSocket.onmessage = function(e){	alert(e.data);	}  
-
-  wSocket.onopen = function(e){ alert("서버 연결 완료"); } 
-  wSocket.onclose = function(e){ alert("서버 연결 종료"); }  
-
-  function send(){ //서버로 데이터를 전송하는 메서드
-	wSocket.send("Hello");
-  }
-</script>*/
+&nbsp; &nbsp; &nbsp; &nbsp;
+<input type="button" value="중지" onclick="stop()" id="stopbutton">
+*/
