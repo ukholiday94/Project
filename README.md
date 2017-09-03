@@ -1,5 +1,5 @@
 # Project
-
+Works only on Windows
 1. Start Server.py
 2. Open two of Client.html
 3. click download on Client.html(A)
