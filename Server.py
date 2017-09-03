@@ -2,6 +2,7 @@ import socket
 import queue
 import base64
 import hashlib
+import struct
 from threading import Thread
 
 RECV_BUFFER = 1024
@@ -13,6 +14,7 @@ send_Connection = False
 
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.bind(("", PORT))
+server_socket.settimeout(30)
 server_socket.listen(2)
 print ("TCPServer Waiting for client on port 8082")
 
@@ -22,7 +24,6 @@ def send(client, msg):
 		data = bytearray([129, 126]) + bytearray(struct.pack('>H', len(data))) + data
 	else:
 		data = bytearray([129, len(data)]) + data #b'\x81'
-		print(data)
 	client.send(data)
 def recv(client):
 	first_byte = bytearray(client.recv(1))[0]
@@ -53,15 +54,16 @@ def sendByClient(conn): #클라이언트가 송신
 		global recive_Connection
 		global send_Connection
 		
-		recive_Connection = True
-		
 		if recive_Connection == True:
 			send(conn,"ok")
 			print ("Receiving...")
-			data = conn.recv(RECV_BUFFER)
-			while (data):
+			opcode, data = recv(conn)
+			while True:
+				if opcode == 0x8:
+					print('close frame received')
+					break
 				que.put(data)
-				data = conn.recv(RECV_BUFFER)
+				opcode, data = recv(conn)
 				print ("Receiving...")
 			print ("Done Receiving")
 			send_Connection = False
@@ -72,13 +74,14 @@ def reciveByClient(conn): #클라이언트가 수신
 		global que
 		global recive_Connection
 		global send_Connection
+		
 		if send_Connection == True:	
-			conn.send("ok".encode())
+			send(conn,"ok")
 			while (send_Connection or (not que.empty())):
 				l = que.get()
-				conn.send(l)
+				send(conn,l)
 				print ("Sending...")
-			conn.shutdown(socket.SHUT_WR)
+			#conn.shutdown(socket.SHUT_WR)
 			print ("Done Sending")
 			recive_Connection = False
 			que.queue.clear()

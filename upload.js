@@ -1,5 +1,5 @@
 var fileSelected = null;
-//var socket = null;
+var socket = null;
 (function () {
 	var uploadfiles = document.querySelector('#uploadfiles');
 	uploadfiles.addEventListener('change', function () {
@@ -9,13 +9,7 @@ var fileSelected = null;
 
 function upload(){
 	alert("업로드 시작");
-	//uploadFile(fileSelected);
 	
-	//socket = new WebSocket('ws://localhost:8082');
-	//socket.binaryType = 'arraybuffer';
-	//socket.onopen = function() {
-	//	send(fileSelected);
-	//}
 	Uploader('ws://localhost:8082', fileSelected)
 	
 	var btn = document.getElementById("downbutton");
@@ -23,23 +17,26 @@ function upload(){
 }
 function download(){
 	alert("다운로드 시작");
-	//downloadFile(fileSelected);
-	socket = new WebSocket('ws://localhost:8082');
-	socket.binaryType = 'arraybuffer';
-	socket.onmessage = handleReceive;
+	
+	Downloader('ws://localhost:8082')
 	
 	var btn = document.getElementById("upbutton");
 	btn.disabled = "disabled";
 }
 function stop(){
 	alert("중지");
-	
+	disconnect();
 	var downbtn = document.getElementById("downbutton");
 	var upbtn = document.getElementById("upbutton");
 	downbtn.disabled = false;
 	upbtn.disabled = false;
 }
 
+function disconnect() {
+ if (socket != 0) {
+  socket.close();
+ }
+}
 function FileSlicer(file) {
 	this.sliceSize = 1024;	
 	this.slices = Math.ceil(file.size / this.sliceSize);
@@ -56,7 +53,7 @@ function FileSlicer(file) {
 }
 function Uploader(url, file) {
 	var fs = new FileSlicer(file);
-	var socket = new WebSocket(url);
+	socket = new WebSocket(url);
 	socket.binaryType = 'arraybuffer'
 
 	socket.onopen = function() {
@@ -68,35 +65,45 @@ function Uploader(url, file) {
 			for(var i = 0; i < fs.slices; ++i) {
 				socket.send(fs.getNextSlice());
 			}
-		   //fs.slices--;
-		   //if(fs.slices>0) socket.send(fs.getNextSlice());
-		}else{
-		   // handle the error code here.
+			disconnect()
 		}
 	}
 	socket.onclose = function() {
 		alert("업로드 종료");
+		var downbtn = document.getElementById("downbutton");
+		downbtn.disabled = false;
+	};
+}
+function Downloader(url) {
+	var file = new File("recv.png");
+	socket = new WebSocket(url);
+	socket.binaryType = 'arraybuffer';
+	
+	socket.onopen = function() {
+		socket.send("recive");
+	}
+	socket.onmessage = function(ms){
+		if(ms.data=="ok"){
+			alert("Receiving...");
+		}
+		else{
+			file.open("wb");
+			while(true){
+				file.write(ms.data)
+			}
+			/**for(var i = 0; i < fs.slices; ++i) {
+				socket.send(fs.getNextSlice());
+			}*/
+		}
+	}
+	socket.onclose = function() {
+		file.close();
+		alert("다운로드 종료");
+		var upbtn = document.getElementById("upbutton");
+		upbtn.disabled = false;
 	};
 }
 
-function send(file) {
-	//var file = document.getElementById('uploadfiles').files[0];
-	var reader = new FileReader();
-	var rawData = new ArrayBuffer();			
-
-	reader.loadend = function() {
-	}
-	reader.onload = function(e) {
-		rawData = e.target.result;
-		ws.send(rawData);
-		alert("파일 전송이 완료 되었습니다.")
-		ws.send('end');
-	}
-
-	reader.readAsArrayBuffer(file);
-	//var byteArray = new Uint8Array(file);
-	//socket.send(byteArray.buffer);
-}
 function handleReceive(message) {
 	// 受信したRAWデータをcanvasに
 	var buffer = new Uint8Array(message.data);
